@@ -1,0 +1,977 @@
+---
+title: "Análisis de la gravedad de accidentes en Medellín entre el 2014 y 2018"
+author: "Maria Stella López Carvajal, Jairo Andres Rodriguez Rodriguez, Luis Eduardo Oliveros Oyola, Edward Francisco Méndez Otálvaro, Daniela Cardona González"
+date: "16/10/2019"
+output: 
+    html_document:
+         toc: true
+         toc_float: true
+         toc_depth: 5
+         number_sections: true
+         theme: readable
+         highlight: tango
+         df_print: paged
+---
+
+```{r include=FALSE}
+accidentalidad <-read.csv("accidentalidad_main_limpia.txt",header=TRUE,sep=",",stringsAsFactors = FALSE)
+```
+
+```{r include=FALSE}
+library(dplyr)
+accidentalidad <- select(accidentalidad, -X.1)
+names(accidentalidad)[1]<-"ID"
+```
+
+```{r include=FALSE}
+library(dplyr)
+#Convirtiendo hora a formato pertinente
+accidentalidad$HORA2<-format(strptime(accidentalidad$HORA, "%I:%M %p"), format="%H:%M:%S")
+library(chron)
+accidentalidad$HORA2<-times(accidentalidad$HORA2)
+accidentalidad$HORA_SOLA<-hours(accidentalidad$HORA2)
+accidentalidad <- select(accidentalidad, -HORA2)
+names(accidentalidad)[20]<-"LATITUD"
+names(accidentalidad)[21]<-"LONGITUD"
+```
+<!--```{r include=FALSE}
+library(lubridate)
+fec_acc<-paste(accidentalidad$PERIODO,accidentalidad$MES,accidentalidad$DIA,sep="-")
+fechas<-ymd(paste(accidentalidad$PERIODO,accidentalidad$MES,accidentalidad$DIA,sep="-"))
+accidentalidad$FECHAS<-fechas
+```-->
+
+```{r include=FALSE}
+accidentalidad <-read.csv("accidentalidad_main_limpia.txt",header=TRUE,sep=",")
+accidentalidad<-select(accidentalidad,-X.1)
+```
+
+<div class=text-justify>
+
+### Resumen
+
+
+Como parte de la estrategia para salvar vidas en la vía, la Secretaria de Movilidad ha implementado diferentes medidas para reducir la tasa de mortalidad, lesiones y daños a vehículos por accidentes de tránsito, la cual genera costos de más de $250.000 millones anuales en Medellín. Por lo anterior, en este trabajo se presenta un análisis parcial enfocado en la gravedad de los accidentes registrados, con el fin de identificar zonas, temporadas o franjas horarias de alto riesgo para los conductores y contribuir así, a la efectividad de las medidas preventivas tomadas por la Secretaria de Movilidad.
+
+Este informe tiene como finalidad identificar tendencias y patrones en la accidentalidad de la ciudad a partir de la información suministrada en las bases de datos abiertas entre los años 2014, 2015, 2016, 2017 y 2018 que pueden ser de utilidad para la Secretaria de Movilidad de Medellín en sus funciones de planificación, diseño, coordinación, ejecución y evaluación de estrategias orientadas a mejorar la movilidad en condiciones de seguridad y a la prevención de accidentes de tránsito. 
+
+Adicionalmente, se realizó un breve análisis a una segunda base de datos que contiene información acerca de intervenciones realizadas por parte de la Secretaria de Movilidad a las 16 comunas y 5 corregimientos presentes en la ciudad de Medellín. Las intervenciones consistieron en el fomento de la movilidad segura en los ciudadanos, haciendo énfasis en la prevención de los hechos de tránsito y en la promoción de comportamientos, hábitos y conductas seguras de los usuarios de la vía. Este análisis tuvo como objetivo identificar el efecto de dichas intervenciones en la accidentalidad de la ciudad.
+
+
+### 1. Ordenación y transformación de las bases de datos
+
+#### 1.1 Accidentalidad
+
+La base de datos utilizada para analizar la accidentalidad en Medellín, hace parte de los "Open Data" disponibles en la página de la Alcaldía de Medellín: [Medata](https://geomedellin-m-medellin.opendata.arcgis.com/search?tags=movilidad
+). Esta contiene el registro de los accidentes ocurridos en la ciudad durante el periodo 2014-2018, para los cuales se reportó la siguiente información: fecha, hora, coordenadas geográficas, gravedad, clase de accidente (choque, atropello, volcamiento, caída de ocupante, incendio, choque y atropello) barrio y comuna, entre otros datos específicos que no se tuvieron en cuenta en el análisis.
+
+Debido a la falta de uniformidad y a la presencia de inconsistencias en la base de datos, fue necesario realizar una limpieza de la información para obtener resultados adaptables al análisis. A continuación se listan los procedimientos efectuados en la base de datos:
+
+* Cambio de coordenadas MAGNA SIRGAS cartesianas a coordenadas geográficas (se crearon las columnas Latitud y Longitud).
+* Filtro de información en la columna "COMUNA", ya que algunos registros presentaron nombres de barrios en dicha columna. 
+* Arreglo de errores de codificación.
+* Creación de una columna que contiene la hora en la que ocurrió el accidente como un número entero.
+* Creación de una columna con la fecha en el formato año-mes-día.
+
+Por lo anterior, a partir de la base de datos original se eliminaron cerca de 2000 datos para un total de 208704 datos para análisis final. También, se crearon nuevas variables con el fin de facilitar los análisis realizados. 
+
+#### 1.2 Educación vial
+
+La base de datos de Educación Vial reportada por la Alcaldía de Medellín: [Medata](http://medata.gov.co/dataset/educaci%C3%B3n-vial), presenta información de las intervenciones realizadas por la Secretaria de Movilidad en las diferentes comunas y corregimientos de la ciudad. Cada registro contiene información de la fecha, actividad pegagógica realizada (Sensibilizaciones, Intervención lúdica, Asesoría de usuarios, Formación docentes, etc), institución, población objetivo, barrio, comuna, número de personas sensibilizadas, entre otras. 
+
+Para el análisis efectuado, únicamente se tuvo en cuenta la información de las comunas intervenidas (nombre y número), por lo que el tratamiento de la base de datos se llevó a cabo solo en la columna COMUNA. Dado que el número que identifica a cada una es de interés en el cruce de información con la base de accidentalidad, se creó una nueva columna llamada "NCOMUNA" que lo contiene. Los registros de intervenciones para los 5 corregimientos de Medellín, fueron omitidos en el análisis. 
+
+### 2. Visualización de la base de datos de accidentalidad
+
+A continuación se muestra la base de datos utilizada y tratada para sólo el análisis de accidentalidad.
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+library(DT)
+datatable(head(accidentalidad,28), options = list(searching = FALSE,pageLength = 7, lengthChange = FALSE,scrollX=TRUE,
+  initComplete = JS(
+    "function(settings, json) {",
+    "$(this.api().table().header()).css({'font-size': '62%','background-color': '#1A4876', 'color': '#fff'});",
+    "}")
+,columnDefs = list(list(width="100px",className = 'dt-center',
+  targets = "_all",
+  render = JS(
+    "function(data, type, row, meta) {",
+    "return type === 'display' && data.length > 6 ?",
+    "'<span title=\"' + data + '\">' + data.substr(0, 6) + '...</span>' : data;",
+    "}")
+))), callback = JS('table.page(3).draw(false);'))%>% formatStyle(columns = colnames(.$x$data), fontSize = '12px')
+```
+
+```{r echo=FALSE}
+names(accidentalidad)[20]<-"Latitud"
+names(accidentalidad)[21]<-"Longitud"
+accidentalidad<-select(accidentalidad,-FECHAS, -HORA_SOLA)
+```
+
+### 3. Análisis de la base de datos de accidentalidad
+
+Para identificar tendencias y patrones en la gravedad de los accidentes ocurridos en Medellín durante el periodo 2014-2018, se realizaron los siguientes análisis:
+
+#### 3.1 Serie de tiempo por tipo de gravedad
+
+<p>El objetivo de este análisis de accidentalidad radica en el estudio y la visualización del comportamiento del número de accidentes que involucran distintos niveles de gravedad, dicho esto, se decidió realizar una serie de tiempo por año con el fin de identificar tendencias en cada uno de los casos (daños materiales, muerte y herido) durante el periodo de tiempo establecido, desde 2014 hasta 2018. Los resultados obtenidos se muestran a continuación.</p>
+
+
+```{r include=FALSE}
+library(dplyr)
+acci_completo <- read.csv("accidentalidad_main_limpia.txt",header=TRUE,sep=",", stringsAsFactors = FALSE)
+acci_completo<-select(acci_completo,-X.1,-FECHAS)
+names(acci_completo)[20]<-"Latitud"
+names(acci_completo)[21]<-"Longitud"
+#Convirtiendo hora a formato pertinente
+acci_completo$HORA<-format(strptime(acci_completo$HORA, "%I:%M %p"), format="%H:%M:%S")
+library(chron)
+acci_completo$HORA<-times(acci_completo$HORA)
+```
+
+```{r include = FALSE}
+acci_completo$PERIODO <- as.numeric(acci_completo$PERIODO)
+```
+
+```{r fig.align='center',out.extra='angle=90', echo = FALSE}
+material<- filter(acci_completo, GRAVEDAD == "SOLO DAÑOS")
+counts_material <- table(material$PERIODO)
+serie_material = plotly::plot_ly(x = unique(material$PERIODO), y = counts_material,name = "Serie de Tiempo Daños Materiales Accidentalidad",marker = list(color = c("red","blue","darkorange","black","green")),width=500,height = 400)%>% plotly::layout(title = "Daños materiales por accidentes de tránsito\n Medellín 2014-2018\n",yaxis = list(title="Cantidad de accidentes que involucran exclusivamente \n daños materiales"), xaxis = list(title="Año"))%>%plotly::add_bars(width=c(0.01,0.01,0.01,0.01,0.01))
+serie_material
+```
+
+<p> <br>La evidencia muestra, un aumento anual progresivo de la accidentalidad en la ciudad de Medellín, los accidentes que involucran únicamente daños materiales alcanzan los 19.418, una cifra que posteriormente se reduce en el año 2018, el aumento de este tipo de accidentes, obedece a la gran cantidad de vehículos que circulan por la ciudad en horas pico, donde es mas fácil reportar un choque leve entre vehículos en vías arteria.</p>
+
+```{r fig.align='center',out.extra='angle=90', echo = FALSE}
+heridos<- filter(acci_completo, GRAVEDAD == "HERIDO")
+counts_herido <- table(heridos$PERIODO)
+serie_herido = plotly::plot_ly(x = unique(heridos$PERIODO), y = counts_herido, name = "Serie de Tiempo Heridos Accidentalidad",marker = list(color = c("red","blue","darkorange","black","green")),width=500,height = 400)%>% plotly::layout(title = "Individuos Heridos por accidentes de tránsito\n Medellín 2014-2018\n",yaxis = list(title="Cantidad de Heridos por Accidentalidad"), xaxis = list(title="Año"))%>% plotly::add_bars(width=c(0.01,0.01,0.01,0.01,0.01))
+serie_herido
+```
+
+<p> <br>En el caso de accidentes con heridos se nota una disminución para los años recientes. El año 2016 se presentó la mayor cantidad de heridos por accidentes de tránsito, esto involucra 23.900 casos, sin embargo figura como el inicio de un descenso que podría atribuirse a las campañas de movilidad que más adelante se tratan.</p>
+
+```{r fig.align='center',out.extra='angle=90',  echo = FALSE}
+muertos<- filter(acci_completo, GRAVEDAD == "MUERTO")
+counts_muerto <- table(muertos$PERIODO)
+serie_muerto = plotly::plot_ly(x = unique(muertos$PERIODO), y = counts_muerto, name = "Serie de Tiempo Muertos Accidentalidad",marker = list(color = c("red","blue","darkorange","black","green")),width=500,height = 400)%>% plotly::layout(title = "Individuos fallecidos por accidentes de tránsito\n Medellín 2014-2018\n",yaxis = list(title="Cantidad de Muertos por Accidentalidad"), xaxis = list(title="Año"))%>%plotly::add_bars(width=c(0.01,0.01,0.01,0.01,0.01))
+serie_muerto
+```
+
+<p>Las cifras de casos mortales anuales por accidentes de tránsito son bastante reducidas en comparación a los accidentes con heridos o daño material, sin embargo, puede observarse que, el año 2018 fue el de mayor número de muertes, mucho más que las registradas en 2014, por lo cual, un futuro análisis de los años 2016, 2017 y 2018 puede ser útil para encontrar las causas asociadas a la anormalidad en la tendencia.
+
+En general, las tres gráficas anteriores presentan tendencias diferentes al final de los años estudiados, por lo tanto una revisión de cada uno de estos y su relación con otros factores ajenos a los datos tratados podría ayudar a encontrar mejores estrategias para disminuir los índices de fatalidad y daños materiales.</p>
+
+#### 3.2 Patrones de accidentalidad por franjas horarias 
+
+<p>Se consideró la importancia de identificar aquellas franjas horarias que presentan mayor número de muertos, heridos y daños materiales por día durante el periodo completo de 2014 al 2018. Este tipo de gráficas puede entenderse a partir de los colores, en donde el rojo representa la mayor cantidad de casos y el azul la menor.</p>
+
+
+```{r include=FALSE}
+#Filtrando por accidente material y accidente que involucra afectaciones humanas
+#Extracción solo de la hora y los días de la semana ordenados
+unique(acci_completo$DIA_NOMBRE)
+dayLabs<-c("LUNES","MARTES ","MIÉRCOLES","JUEVES ","VIERNES","SÁBADO ","DOMINGO") 
+acci_completo$DIA_NOMBRE <- factor(acci_completo$DIA_NOMBRE, levels= dayLabs)
+unique(acci_completo$DIA_NOMBRE)
+
+#Extracción de subconjuntos según el daño presentado
+choques_material<-subset(acci_completo,subset=(GRAVEDAD=="SOLO DAÑOS"))
+choques_heridos<-subset(acci_completo,subset=(GRAVEDAD=="HERIDO"))
+choques_fatal<-subset(acci_completo,subset=(GRAVEDAD=="MUERTO"))
+library(fields)
+```
+
+
+```{r fig.align='center',out.extra='angle=90', echo=FALSE}
+#Tablas para cada tipo de daño con el fin de hacer el mapa de calor
+
+#####Daños materiales
+consolidado_material<-table(choques_material$DIA_NOMBRE,choques_material$HORA_SOLA)
+image.plot(consolidado_material,xlab='Día de la semana',ylab='Hora',main='Accidentalidad en Medellín-Daños materiales', xaxt='n', yaxt='n')
+axis(1, at=seq(0,1,by=1/6), labels=c("Lunes","Martes","Miércoles","Jueves","Viernes","Sábado",
+                                     "Domingo"),las=1,cex.axis=0.8)
+axis(2, at=seq(0,1,by=1/23), labels=c(0,1,2,3,4,5,6,7,8,9,10,11,12,
+                                      13,14,15,16,17,18,19,20,21,22,
+                                      23),las=1,cex.axis=0.8)
+```
+
+En este primer análisis, respecto a daños materiales, los accidentes ocurren en su mayoría en horas de la tarde, apreciándose un mayor número de casos a las 17 horas entre los días martes y viernes; hay que tener en cuenta que esta corresponde al inicio de una hora pico (5:00 p.m.) en donde las personas entre semana se movilizan del trabajo para sus hogares. Por otra parte, en los otros días hay franjas de más de 1200 accidentes el día sábado a las 12 horas, que puede atribuirse al fin de la jornada laboral semanal. Por otro lado, el lunes presenta un patron de accidentalidad similar al de los demás días laborales pero con un menor número de registros. Finalmente, el domingo presenta el menor número de casos de accidentes con daños materiales al ser un día no laboral.  
+
+```{r fig.align='center',out.extra='angle=90', echo=FALSE}
+###Heridos
+
+consolidado_heridos<-table(choques_heridos$DIA_NOMBRE,choques_heridos$HORA_SOLA)
+image.plot(consolidado_heridos,xlab='Día de la semana',ylab='Hora',main='Accidentalidad en Medellín-Heridos', xaxt='n', yaxt='n')
+axis(1, at=seq(0,1,by=1/6), labels=c("Lunes","Martes","Miércoles","Jueves","Viernes",
+                                      "Sábado",
+                                      "Domingo"),las=1,cex.axis=0.8)
+axis(2, at=seq(0,1,by=1/23), labels=c(0,1,2,3,4,5,6,7,8,9,10,11,12,
+                                      13,14,15,16,17,18,19,20,21,22,
+                                      23),las=1,cex.axis=0.8)
+```
+
+A diferencia del comportamiento observado en el análisis anterior, los casos de accidentalidad con heridos se concentran en tres franjas horarias diferentes para días laborales: 6-8, 12 y 17-18, siendo la primera la de mayor número de casos por día. Por otro lado, los fines de semana presentan una menor cantidad de accidentes con heridos, siendo el día sábado al mediodía el de más casos reportados (alrededor de 1000).
+
+```{r fig.align='center',out.extra='angle=90', echo=FALSE}
+###Muertos
+
+consolidado_muertos<-table(choques_fatal$DIA_NOMBRE,choques_fatal$HORA_SOLA)
+image.plot(consolidado_muertos,xlab='Día de la semana',ylab='Hora',main='Accidentalidad en Medellín-Fatal', xaxt='n', yaxt='n')
+axis(1, at=seq(0,1,by=1/6), labels=c("Lunes","Martes","Miércoles","Jueves","Viernes",
+                                      "Sábado",
+                                      "Domingo"),las=1, cex.axis=0.8)
+axis(2, at=seq(0,1,by=1/23), labels=c(0,1,2,3,4,5,6,7,8,9,10,11,12,
+                                      13,14,15,16,17,18,19,20,21,22,
+                                      23),las=1, cex.axis=0.8)
+                         
+```
+
+Los datos de accidentalidad que involucran muerte son muy variados o dispersos en la gráfica. Las franjas que presentan mas de 15 fatalidades se dan en todos los días de la semana excepto jueves y viernes. En la noche del sábado ocurre el mayor número de fatalidades, seguido por el día martes a las 15 horas y el domingo a las 3 horas. Las pérdidas humanas correspondientes a los fines de semana podrían ser atribuidas a casos que involucran usuarios de la vía en estado de embriaguez. Finalmente, la franja horaria más segura para los usuarios se encuentra entre las 0 y las 4 horas de los días martes, miércoles y jueves.
+
+
+#### 3.3 Zonas con mayor número de accidentes por tipo de gravedad
+
+
+<p>Además de conocer los días y las franjas horarias donde ocurren el mayor número de accidentes, es importante identificar las regiones con altas tasas de accidentalidad en la ciudad. De esta manera, los planes de prevención pueden enfocarse inicialmente en aquellas zonas de alto riesgo que requieren más atención.
+
+A continuación se presenta la ubicación de los accidentes registrados en la base de datos, donde el color rojo hace referencia a casos con pérdidas humanas, el naranja a accidentes con heridos y el azul a pérdidas materiales a vehículos.</p>
+
+
+```{r echo=FALSE}
+library(leaflet)
+longitud = accidentalidad$Longitud
+latitud = accidentalidad$Latitud
+
+lng1 = min(longitud)
+lat1=min(latitud)
+lng2=max(longitud)
+lat2=max(latitud)
+```
+
+```{r echo=FALSE}
+herido<-subset(accidentalidad,subset=(GRAVEDAD=="HERIDO"))
+muerto<-subset(accidentalidad,subset=(GRAVEDAD=="MUERTO"))
+material<-subset(accidentalidad,subset=(GRAVEDAD=="SOLO DAÑOS"))
+map<-leaflet()
+map<-addProviderTiles(map,provider="OpenStreetMap.Mapnik")
+map<-fitBounds(map, lng1, lat1, lng2,lat2)
+map<-addCircleMarkers(map,lng=muerto$Longitud,lat=muerto$Latitud,opacity=1,fill=TRUE,color="rgba(253,94,83)",fillColor = "rgba(253,94,83)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(253,94,83);' 
+    } else if (childCount < 1000) {  
+      c = 'rgba(253,94,83);'  
+    } else { 
+      c = 'rgba(253,94,83);'  
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+map<-addCircleMarkers(map,lng=herido$Longitud,lat=herido$Latitud,opacity=1,fill=TRUE,color="rgba(255,174,66)",fillColor = "rgba(255,174,66)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(255,174,66);'  
+    } else if (childCount < 1000) {  
+      c = 'rgba(255,174,66);'   
+    } else { 
+      c = 'rgba(255,174,66);'   
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+map<-addCircleMarkers(map,lng=material$Longitud,lat=material$Latitud,opacity=1,fill=TRUE,color="rgba(154,206,235)",fillColor = "rgba(154,206,235)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(154,206,235);'  
+    } else if (childCount < 1000) {  
+      c = 'rgba(154,206,235);'  
+    } else { 
+      c = 'rgba(154,206,235);'
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+
+map
+```
+
+<p> <br>A primera vista, se observa que independientemente del tipo de gravedad, los casos de accidentalidad se concentran en el centro y en las vías de acceso y salida de la ciudad. El mayor número de registros con fatalidades se localizan en las comunas de Aranjuez (Universidad, Hospital), Castilla (Caribe) y la Candelaria (San Antonio y Prado). Con el fin de identificar con mayor claridad las zonas con altos índices de accidentalidad, en la siguiente sección se presenta un análisis más detallado de la localización de los accidentes en Medellín, donde los registros de accidentalidad serán clasificados por comunas.</p>
+
+#### 3.4 Comunas con mayor número de accidentes por tipo de gravedad para el periodo 2014-2018
+
+Para una mejor identificación de las zonas donde se concentran los tres tipos de gravedad estudiados, se realizó un análisis descriptivo por medio de gráficos de barras que relaciona el número de casos por tipo de gravedad con las diferentes comunas de la ciudad.
+
+```{r include=FALSE}
+library(ggplot2)
+library(gridExtra)
+library(dplyr)
+```
+
+```{r include=FALSE}
+#Definir número de comunas a nalizar
+num = 17
+```
+
+
+```{r include=FALSE}
+#Generación de los 3 subsets DAÑOS; HERIDO; MUERTO.
+y1 = subset(accidentalidad, subset = (GRAVEDAD=="SOLO DAÑOS"))
+y2 = subset(accidentalidad, subset = (GRAVEDAD=="HERIDO"))
+y3 = subset(accidentalidad, subset = (GRAVEDAD=="MUERTO"))
+
+```
+
+```{r echo=FALSE}
+#Primer gráfico (DAÑOS)
+ocurrencia_danos_comuna <- filter(y1, COMUNA < num)
+counts_danos <- table(ocurrencia_danos_comuna$COMUNA)
+
+p1 = plotly::plot_ly(x = factor(c(seq(1,16))), y = counts_danos, type = "bar", name = "Solo Daños" , marker = list(color = "rgb(154,206,235)"))%>% plotly::layout(yaxis = list(title="Cantidad de Accidentes"),xaxis = list(tickangle = 0))
+```
+
+```{r include=FALSE}
+#Segundo Gráfico (HERIDOS)
+ocurrencia_heridos_comuna <- filter(y2, COMUNA < num)
+counts_heridos <- table(ocurrencia_heridos_comuna$COMUNA)
+
+p2 = plotly::plot_ly(x = factor(c(seq(1,16))), y = counts_heridos, type = "bar", name = "Con Heridos" , marker = list(color = "rgb(255,174,66)"))%>% plotly::layout(title = "Número de accidentes por comuna",xaxis = list(title="Comuna",tickangle = 0))
+```
+
+
+```{r include=FALSE}
+#Tercer Gráfico (MUERTOS)
+ocurrencia_muertos_comuna <- filter(y3, COMUNA < num)
+counts_muertos <- table(ocurrencia_muertos_comuna$COMUNA)
+
+p3 = plotly::plot_ly(x = factor(c(seq(1,16))), y = counts_muertos, type = "bar", name = "Con Muertos" , marker = list(color = "rgb(253,94,83)"))%>% plotly::layout(xaxis = list(tickangle = 0))
+
+```
+```{r warning=FALSE, message=FALSE,fig.width=8, fig.height=4, echo=FALSE}
+#GRAFICOS JUNTOS
+sb = plotly::subplot(p1,p2,p3, titleY = TRUE, titleX = TRUE,  margin = 0.04)
+sb
+```
+
+<p> <br>Como se evidencia en las tres gráficas, las comunas con mayor número de registros son las mismas para cada tipo de gravedad, siendo estas, La Candelaria (comuna 10), Castilla (comuna 5) y Laureles-Estadio (comuna 11), las cuales están seguidas por Belén (comuna 16), Guayabal (comuna 15) y Aranjuez (comuna 4). Lo anterior índica que los esfuerzos por parte de la Secretaria de Movilidad para la prevención de accidentes, deberían concentrarse en dichas comunas. Por otro lado, en Santa Cruz (comuna 1) y Popular (comuna 2) se evidencia el menor número de casos de accidentalidad por gravedad, lo cual puede estar asociado a que son sectores netamente residenciales que carecen de una estructura económica desarrollada.</p> 
+
+#### 3.5 Eventos y festividades del año y su relación a la accidentalidad
+
+En paralelo al análisis realizado para la identificación de patrones y tendencias en las franjas horarias, días y zonas donde ocurren los accidentes registrados, se decidió estudiar el efecto de algunas épocas o eventos que ocurren a lo largo del año sobre la accidentalidad por tipo de gravedad en Medellín. Para esto, inicialmente se realizó un análisis descriptivo por medio de diagramas de barras que relacionan la frecuencia de los accidentes según el tipo de gravedad con el periodo de tiempo analizado, por evento, con el fín de observar la tendencia a través del tiempo. Las épocas y eventos considerados fueron:Semana Santa, Feria de Flores, Diciembre y Partidos de fútbol importantes para la ciudad como los clásicos del equipo Atlético Nacional vs el Deportivo Independiente Medellín. 
+
+Además del análisis descriptivo, para cada evento se presenta la ubicación de los accidentes discriminados por tipo de gravedad, con el propósito de identificar zonas de mayor concentración que pueden ser intervenidas por la Secretaria de Movilidad en sus futuras medidas de prevención. A continuación se presentan los resultados obtenidos por evento.
+
+##### 3.5.1 Feria de las Flores
+
+<!-- ------------------------------------------------------------------------------->
+
+```{r echo=FALSE}
+fec_dic<-read.csv("fec_dic.csv",header= TRUE,sep=",",encoding="UTF-8")
+fec_dic$fechas<-as.Date(fec_dic$fechas)
+fec_santa<-read.csv("fec_santa.csv",header= TRUE,sep=",",encoding="UTF-8")
+fec_santa$fechas<-as.Date(fec_santa$fechas)
+fec_flores<-read.csv("fec_flores.csv",header= TRUE,sep=",",encoding="UTF-8")
+fec_flores$fechas<-as.Date(fec_flores$fechas)
+clasicos <-read.csv("clasicos.csv",sep=";")
+```
+
+```{r echo=FALSE}
+fecha_cla<-as.character(clasicos$Fechas)
+split_date<-unlist(strsplit(fecha_cla ,split="de",fixed=TRUE))
+dia<-split_date[seq(1,length(split_date),by=3)]
+mes<-split_date[seq(2,length(split_date),by=3)]
+anno<-split_date[seq(3,length(split_date),by=3)]
+complete<-as.character(paste(anno,mes,dia,sep=""))
+```
+
+```{r package_options, include=FALSE}
+library(lubridate)
+fec_clas<-as.data.frame(ymd(complete))
+names(fec_clas)[1]="fechas"
+fec_clas$Nacional<-clasicos$Nacional
+fec_clas$Medellin<-clasicos$Medellin
+```
+
+<!-- Creación variable fechas en accidentalidad -->
+```{r echo=FALSE}
+fec_acc<-paste(accidentalidad$PERIODO,accidentalidad$MES,accidentalidad$DIA,sep="-")
+fechas<-ymd(fec_acc)
+accidentalidad$fechas<-fechas
+```
+
+<!-- !!!!!!!!!!!!!!!!!FERIA DE LAS FLORES!!!!!!!!!!!!!!!!!!!!!!-->
+```{r echo=FALSE}
+acci_feria_flores<-merge(accidentalidad,fec_flores,by.x="fechas",by.y="fechas")
+acci_feria_flores$id<-seq(1,length(acci_feria_flores$fechas),by=1)
+conteo_ferias<-aggregate(id~PERIODO+GRAVEDAD,data=acci_feria_flores,FUN=length)
+```
+
+```{r echo=FALSE}
+# HERIDOS
+library(ggplot2)
+data_ferias<-data.frame(cbind(conteo_ferias$PERIODO[1:5],conteo_ferias$id[1:5]))
+names(data_ferias)[1]<-"Año"
+names(data_ferias)[2]<-"Cantidad"
+p1<-plotly::plot_ly(x = data_ferias$Año, y = data_ferias$Cantidad, type = "bar", name = "Con Heridos" , marker = list(color = "rgb(255,174,66)"))%>% plotly::layout(title = "Número de accidentes en Feria de Flores por año",xaxis = list(title="Año",tickangle = -90))
+```
+
+```{r echo=FALSE}
+# MUERTES
+data_ferias2<-data.frame(cbind(conteo_ferias$PERIODO[6:10],conteo_ferias$id[6:10]))
+names(data_ferias2)[1]<-"Año"
+names(data_ferias2)[2]<-"Cantidad"
+p2<-plotly::plot_ly(x = data_ferias2$Año, y = data_ferias2$Cantidad, type = "bar", name = "Con Muertos" , marker = list(color = "rgb(253,94,83)"))%>% plotly::layout(xaxis = list(tickangle = -90))
+```
+
+```{r echo=FALSE}
+# DAÑOS MATERIALES
+data_ferias3<-data.frame(cbind(conteo_ferias$PERIODO[11:15],conteo_ferias$id[11:15]))
+names(data_ferias3)[1]<-"Año"
+names(data_ferias3)[2]<-"Cantidad"
+p3<-plotly::plot_ly(x = data_ferias3$Año, y = data_ferias3$Cantidad, type = "bar", name = "Solo Daños" , marker = list(color = "rgb(154,206,235)"))%>% plotly::layout(yaxis = list(title="Cantidad de Accidentes"),xaxis = list(tickangle = -90))
+```
+
+```{r warning=FALSE, message=FALSE,fig.width=6, fig.height=4, echo=FALSE}
+#GRAFICOS JUNTOS
+sb = plotly::subplot(p3,p1,p2, titleY = TRUE, titleX = TRUE,  margin = 0.04)
+sb
+```
+
+<p>Para las Ferias de Flores celebradas en Medellín durante el periodo 2014-2018, no existe una tendencia general y clara para los tres tipos de gravedad analizada. Sin embargo, se observa una disminución en los casos con fatalidades para los años 2015-2018 y un aumento en el número de accidentes con solo daños materiales durante el periodo de tiempo analizado. Finalmente, no se evidencia una tendencia clara para los registros con heridos ya que la accidentalidad aumenta y disminuye durante los 5 años.
+
+En el siguiente mapa se muestra la ubicación de los accidentes ocurridos en Feria de Flores en el periodo 2014-2018.</p>
+
+```{r echo=FALSE}
+heridos_fer<-subset(acci_feria_flores,subset=GRAVEDAD=="HERIDO")
+muertos_fer<-subset(acci_feria_flores,subset=GRAVEDAD=="MUERTO")
+materiales_fer<-subset(acci_feria_flores,subset=GRAVEDAD=="SOLO DAÑOS")
+```
+
+```{r echo=FALSE}
+mapa<-leaflet()
+mapa<-addProviderTiles(mapa,provider="OpenStreetMap.Mapnik")
+mapa<-fitBounds(mapa,lng1=min(heridos_fer$Longitud),lat1=min(heridos_fer$Latitud),lng2=max(heridos_fer$Longitud),lat2=max(heridos_fer$Latitud))
+
+
+mapa<-addCircleMarkers(mapa,lng=muertos_fer$Longitud,lat=muertos_fer$Latitud,opacity=1,fill=TRUE,color="rgba(253,94,83)",fillColor = "rgba(253,94,83)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(253,94,83);' 
+    } else if (childCount < 1000) {  
+      c = 'rgba(253,94,83);'  
+    } else { 
+      c = 'rgba(253,94,83);'  
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+mapa<-addCircleMarkers(mapa,lng=heridos_fer$Longitud,lat=heridos_fer$Latitud,opacity=1,fill=TRUE,color="rgba(255,174,66)",fillColor = "rgba(255,174,66)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),radius=7,fillOpacity=0.7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(255,174,66);'  
+    } else if (childCount < 1000) {  
+      c = 'rgba(255,174,66);'   
+    } else { 
+      c = 'rgba(255,174,66);'   
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+mapa<-addCircleMarkers(mapa,lng=materiales_fer$Longitud,lat=materiales_fer$Latitud,opacity=1,fill=TRUE,color="rgba(154,206,235)",fillColor = "rgba(154,206,235)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),radius=7,fillOpacity=0.7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(154,206,235);'  
+    } else if (childCount < 1000) {  
+      c = 'rgba(154,206,235);'  
+    } else { 
+      c = 'rgba(154,206,235);'
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+mapa
+```
+
+<p> <br>Para esta época se evidencia que los accidentes con heridos y daños materiales se encuentran dispersos en el mapa con algunos puntos de mayor concentración en La Candelaria, Aranjuez y Castilla. Los casos con fatalidades se acentuaron en el suroccidente (Guayabal) y en el centro oriental y occidental de la ciudad. El comportamiento evidenciado en las comunas del centro se podría asociar al aumento en el flujo de turismo en sitios como Parque Berrio y San Antonio.</p>
+
+<!-- !!!!!!!!!!! DICIEMBRE -!!!!!!!!!!!!!!!!!-->
+
+##### 3.5.2 Diciembre
+
+```{r echo=FALSE}
+acci_diciembre<-merge(accidentalidad,fec_dic,by.x="fechas",by.y="fechas")
+acci_diciembre$id<-seq(1,length(acci_diciembre$fechas),by=1)
+conteo_diciembre<-aggregate(id~PERIODO+GRAVEDAD,data=acci_diciembre,FUN=length)
+```
+
+```{r echo=FALSE}
+# HERIDOS
+data_diciembre<-data.frame(cbind(conteo_diciembre$PERIODO[1:5],conteo_diciembre$id[1:5]))
+names(data_diciembre)[1]<-"Año"
+names(data_diciembre)[2]<-"Cantidad"
+p1<-plotly::plot_ly(x = data_diciembre$Año, y = data_diciembre$Cantidad, type = "bar", name = "Con Heridos" , marker = list(color = "rgb(255,174,66)"))%>% plotly::layout(title = "Número de accidentes en Diciembre por año",xaxis = list(title="Año",tickangle = -90))
+```
+
+```{r echo=FALSE}
+# MUERTES
+data_diciembre2<-data.frame(cbind(conteo_diciembre$PERIODO[6:10],conteo_diciembre$id[6:10]))
+names(data_diciembre2)[1]<-"Año"
+names(data_diciembre2)[2]<-"Cantidad"
+p2<-plotly::plot_ly(x = data_diciembre2$Año, y = data_diciembre2$Cantidad, type = "bar", name = "Con Muertos" , marker = list(color = "rgb(253,94,83)"))%>% plotly::layout(xaxis = list(tickangle = -90))
+```
+
+```{r echo=FALSE}
+# DAÑOS MATERIALES
+data_diciembre3<-data.frame(cbind(conteo_diciembre$PERIODO[11:15],conteo_diciembre$id[11:15]))
+names(data_diciembre3)[1]<-"Año"
+names(data_diciembre3)[2]<-"Cantidad"
+p3<-plotly::plot_ly(x = data_diciembre3$Año, y = data_diciembre3$Cantidad, type = "bar", name = "Solo Daños" , marker = list(color = "rgb(154,206,235)"))%>% plotly::layout(yaxis = list(title="Cantidad de Accidentes"),xaxis = list(tickangle = -90))
+```
+
+```{r warning=FALSE, message=FALSE,fig.width=6, fig.height=4, echo=FALSE}
+#GRAFICOS JUNTOS
+sb = plotly::subplot(p3,p1,p2, titleY = TRUE, titleX = TRUE,  margin = 0.04)
+sb
+```
+
+<p>El estudio realizado para esta época incluyó todos los días del mes, por lo cual se evidenció un mayor número de casos de accidentalidad por tipo de gravedad en comparación a los demás eventos considerados. Los accidentes con solo daños materiales presentaron un máximo en el 2016 con una leve disminución en los años posteriores, mientras que en los casos con heridos se observa una disminución marcada y un máximo para el año 2016 (1937 registros). Por último, los casos de fatalidad, los cuales tuvieron un comportamiento variado  a través de los años, presentan su mínimo número de registros en el 2016, con un posterior aumento para los años 2017 y 2018, lo cual podría preveer un futuro incremento de estas cifras.
+
+En el siguiente mapa se muestra la ubicación de los accidentes ocurridos en diciembre en el periodo 2014-2018.</p>
+
+```{r echo=FALSE}
+heridos_dic<-subset(acci_diciembre,subset=GRAVEDAD=="HERIDO")
+muertos_dic<-subset(acci_diciembre,subset=GRAVEDAD=="MUERTO")
+materiales_dic<-subset(acci_diciembre,subset=GRAVEDAD=="SOLO DAÑOS")
+```
+
+```{r echo=FALSE}
+mapa<-leaflet()
+mapa<-addProviderTiles(mapa,provider="OpenStreetMap.Mapnik")
+mapa<-fitBounds(mapa,lng1=min(heridos_dic$Longitud),lat1=min(heridos_dic$Latitud),lng2=max(heridos_dic$Longitud),lat2=max(heridos_dic$Latitud))
+
+
+mapa<-addCircleMarkers(mapa,lng=muertos_dic$Longitud,lat=muertos_dic$Latitud,opacity=1,fill=TRUE,color="rgba(253,94,83)",fillColor = "rgba(253,94,83)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),radius=7,fillOpacity=0.7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(253,94,83);' 
+    } else if (childCount < 1000) {  
+      c = 'rgba(253,94,83);'  
+    } else { 
+      c = 'rgba(253,94,83);'  
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+mapa<-addCircleMarkers(mapa,lng=heridos_dic$Longitud,lat=heridos_dic$Latitud,opacity=1,fill=TRUE,color="rgba(255,174,66)",fillColor = "rgba(255,174,66)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(255,174,66);'  
+    } else if (childCount < 1000) {  
+      c = 'rgba(255,174,66);'   
+    } else { 
+      c = 'rgba(255,174,66);'   
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+mapa<-addCircleMarkers(mapa,lng=materiales_dic$Longitud,lat=materiales_dic$Latitud,opacity=1,fill=TRUE,color="rgba(154,206,235)",fillColor = "rgba(154,206,235)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(154,206,235);'  
+    } else if (childCount < 1000) {  
+      c = 'rgba(154,206,235);'  
+    } else { 
+      c = 'rgba(154,206,235);'
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+mapa
+```
+<p> <br>En este mapa se puede notar un aumento de los casos de accidentes con heridos, muertes y solo daños materiales en zonas del centro y lugares cercanos al recorrido del río medellín, que podrían asociarse a un aumento en las actividades de turismo y a la presencia de alumbrados en dichas regiones de la ciudad.</p>
+
+##### 3.5.3 Semana Santa
+<!-- !!!!!!!!!!! SEMANA SANTA -!!!!!!!!!!!!!!!!!-->
+
+```{r echo=FALSE}
+acci_ss<-merge(accidentalidad,fec_santa,by.x="fechas",by.y="fechas")
+acci_ss$id<-seq(1,length(acci_ss$fechas),by=1)
+conteo_ss<-aggregate(id~PERIODO+GRAVEDAD,data=acci_ss,FUN=length)
+```
+
+```{r echo=FALSE}
+# HERIDOS
+data_ss<-data.frame(cbind(conteo_ss$PERIODO[1:5],conteo_ss$id[1:5]))
+names(data_ss)[1]<-"Año"
+names(data_ss)[2]<-"Cantidad"
+p1<-plotly::plot_ly(x = data_ss$Año, y = data_ss$Cantidad, type = "bar", name = "Con Heridos" , marker = list(color = "rgb(255,174,66)"))%>% plotly::layout(title = "Número de accidentes en Semana Santa por año",xaxis = list(title="Año",tickangle = -90))
+```
+
+```{r echo=FALSE}
+# MUERTES
+data_ss2<-data.frame(cbind(conteo_ss$PERIODO[6:10],conteo_ss$id[6:10]))
+names(data_ss2)[1]<-"Año"
+names(data_ss2)[2]<-"Cantidad"
+p2<-plotly::plot_ly(x = data_ss2$Año, y = data_ss2$Cantidad, type = "bar", name = "Con Muertos" , marker = list(color = "rgb(253,94,83)"))%>% plotly::layout(xaxis = list(tickangle = -90))
+```
+
+```{r echo=FALSE}
+# DAÑOS MATERIALES
+data_ss3<-data.frame(cbind(conteo_ss$PERIODO[11:15],conteo_ss$id[11:15]))
+names(data_ss3)[1]<-"Año"
+names(data_ss3)[2]<-"Cantidad"
+p3<-plotly::plot_ly(x = data_ss3$Año, y = data_ss3$Cantidad, type = "bar", name = "Solo Daños" , marker = list(color = "rgb(154,206,235)"))%>% plotly::layout(yaxis = list(title="Cantidad de Accidentes"),xaxis = list(tickangle = -90))
+```
+
+```{r warning=FALSE, message=FALSE,fig.width=6, fig.height=4, echo=FALSE}
+#GRAFICOS JUNTOS
+sb = plotly::subplot(p3,p1,p2, titleY = TRUE, titleX = TRUE,  margin = 0.04)
+sb
+```
+
+<p>La época de Semana Santa fue analizada por ser un periodo de tiempo de alto turismo en la ciudad. Dado que estas fechas no son totalmente feriadas se encuentra un menor número de casos de accidentalidad por tipo de gravedad. En las gráficas se evidencia una disminución clara en los casos con heridos, con un mínimo de 324 accidentes para el año 2016. Por otro lado, los accidentes con solo daños materiales no muestran tendencia alguna y los casos con fatalidades presentaron un incremento abrupto en el año 2018, lo cual puede ser de interés para la Secretaria de Movilidad, ya que este año se encuentra precedido por el menor número de casos durante el periodo 2014-2018.
+
+En el siguiente mapa se muestra la ubicación de los accidentes ocurridos en semana santa en el periodo 2014-2018.</p>
+```{r echo=FALSE}
+heridos_ss<-subset(acci_ss,subset=GRAVEDAD=="HERIDO")
+muertos_ss<-subset(acci_ss,subset=GRAVEDAD=="MUERTO")
+materiales_ss<-subset(acci_ss,subset=GRAVEDAD=="SOLO DAÑOS")
+```
+
+
+```{r echo=FALSE}
+mapa<-leaflet()
+mapa<-addProviderTiles(mapa,provider="OpenStreetMap.Mapnik")
+mapa<-fitBounds(mapa,lng1=min(heridos_ss$Longitud),lat1=min(heridos_ss$Latitud),lng2=max(heridos_ss$Longitud),lat2=max(heridos_ss$Latitud))
+
+
+mapa<-addCircleMarkers(mapa,lng=muertos_ss$Longitud,lat=muertos_ss$Latitud,opacity=1,fill=TRUE,color="rgba(253,94,83)",fillColor = "rgba(253,94,83)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(253,94,83);' 
+    } else if (childCount < 1000) {  
+      c = 'rgba(253,94,83);'  
+    } else { 
+      c = 'rgba(253,94,83);'  
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+mapa<-addCircleMarkers(mapa,lng=heridos_ss$Longitud,lat=heridos_ss$Latitud,opacity=1,fill=TRUE,color="rgba(255,174,66)",fillColor = "rgba(255,174,66)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(255,174,66);'  
+    } else if (childCount < 1000) {  
+      c = 'rgba(255,174,66);'   
+    } else { 
+      c = 'rgba(255,174,66);'   
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+mapa<-addCircleMarkers(mapa,lng=materiales_ss$Longitud,lat=materiales_ss$Latitud,opacity=1,fill=TRUE,color="rgba(154,206,235)",fillColor = "rgba(154,206,235)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(154,206,235);'  
+    } else if (childCount < 1000) {  
+      c = 'rgba(154,206,235);'  
+    } else { 
+      c = 'rgba(154,206,235);'
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+mapa
+```
+<p> <br>En este epoca, los casos con fatalidades se concentran en Aranjuez, La Candelaria y Guayabal, localización similar a la evidenciada en los eventos anteriores, mientras que, los accidentes con heridos presentan focos de alta frecuencia en el Doce de Octubre, Robledo y Belén, además de las comunas ya mencionadas. Por último, los registros con solo daños materiales se concentran en el Poblado y la zona centro de la ciudad.</p>
+
+##### 3.5.4 Clásicos Nacional-Medellín
+<!-- !!!!!!!!!!! PARTIDOS NACIONAL MEDELLIN-!!!!!!!!!!!!!!!!!-->
+
+```{r echo=FALSE}
+acci_partidos<-merge(accidentalidad,fec_clas,by.x="fechas",by.y="fechas")
+acci_partidos$id<-seq(1,length(acci_partidos$fechas),by=1)
+conteo_partidos<-aggregate(id~PERIODO+GRAVEDAD,data=acci_partidos,FUN=length)
+```
+
+```{r echo=FALSE}
+# HERIDOS
+data_partidos<-data.frame(cbind(conteo_partidos$PERIODO[1:5],conteo_partidos$id[1:5]))
+names(data_partidos)[1]<-"Año"
+names(data_partidos)[2]<-"Cantidad"
+p1<-plotly::plot_ly(x = data_partidos$Año, y = data_partidos$Cantidad, type = "bar", name = "Con Heridos" , marker = list(color = "rgb(255,174,66)"))%>% plotly::layout(title = "Número de accidentes en Clásicos Nacional-Medellín por año",xaxis = list(title="Año",tickangle = -90))
+```
+
+```{r echo=FALSE}
+# MUERTOS
+data_partidos2<-data.frame(cbind(conteo_partidos$PERIODO[6:8],conteo_partidos$id[6:8]))
+names(data_partidos2)[1]<-"Año"
+names(data_partidos2)[2]<-"Cantidad"
+p2<-plotly::plot_ly(x = data_partidos2$Año, y = data_partidos2$Cantidad, type = "bar", name = "Con Muertos" , marker = list(color = "rgb(253,94,83)"))%>% plotly::layout(xaxis = list(tickangle = -90)) 
+```
+
+```{r echo=FALSE}
+# DAÑOS MATERIALES
+data_partidos3<-data.frame(cbind(conteo_partidos$PERIODO[9:13],conteo_partidos$id[9:13]))
+names(data_partidos3)[1]<-"Año"
+names(data_partidos3)[2]<-"Cantidad"
+p3<-plotly::plot_ly(x = data_partidos3$Año, y = data_partidos3$Cantidad, type = "bar", name = "Solo Daños" , marker = list(color = "rgb(154,206,235)"))%>% plotly::layout(yaxis = list(title="Cantidad de Accidentes"),xaxis = list(tickangle = -90))
+```
+
+```{r warning=FALSE, message=FALSE,fig.width=6, fig.height=4, echo=FALSE}
+#GRAFICOS JUNTOS
+sb = plotly::subplot(p3,p1,p2, titleY = TRUE, titleX = TRUE,  margin = 0.04)
+sb
+```
+
+<p>Debido a la importancia de los eventos deportivos en la ciudad, especialmente, aquellos que involucran una confrontación entre el Atlético Nacional y el Deportivo Independiente Medellín, se estudió la accidentalidad en aquellas fechas donde se realizaron partidos entre dichos equipos. En los tipos de gravedad analizados se observa una clara disminución en el número de registros, excepto en los casos con solo daños materiales, donde se evidencian aumentos para los años 2015 y 2017.
+
+A continuación se muestra la ubicación de los accidentes ocurridos los días que hubo un clásico Nacional vs Medellín.</p>
+
+```{r echo=FALSE}
+heridos_partidos<-subset(acci_partidos,subset=GRAVEDAD=="HERIDO")
+muertos_partidos<-subset(acci_partidos,subset=GRAVEDAD=="MUERTO")
+materiales_partidos<-subset(acci_partidos,subset=GRAVEDAD=="SOLO DAÑOS")
+```
+
+<style>
+.html-widget {
+    margin: auto;
+}
+</style>
+
+```{r leaflet, fig.align="center", echo=FALSE}
+mapa<-leaflet()
+mapa<-addProviderTiles(mapa,provider="OpenStreetMap.Mapnik")
+mapa<-fitBounds(mapa,lng1=min(heridos_partidos$Longitud),lat1=min(heridos_partidos$Latitud),lng2=max(heridos_partidos$Longitud),lat2=max(heridos_partidos$Latitud))
+
+
+mapa<-addCircleMarkers(mapa,lng=muertos_partidos$Longitud,lat=muertos_partidos$Latitud,opacity=1,fill=TRUE,color="rgba(253,94,83)",fillColor = "rgba(253,94,83)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(253,94,83);' 
+    } else if (childCount < 1000) {  
+      c = 'rgba(253,94,83);'  
+    } else { 
+      c = 'rgba(253,94,83);'  
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+mapa<-addCircleMarkers(mapa,lng=heridos_partidos$Longitud,lat=heridos_partidos$Latitud,opacity=1,fill=TRUE,color="rgba(255,174,66)",fillColor = "rgba(255,174,66)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(255,174,66);'  
+    } else if (childCount < 1000) {  
+      c = 'rgba(255,174,66);'   
+    } else { 
+      c = 'rgba(255,174,66);'   
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+mapa<-addCircleMarkers(mapa,lng=materiales_partidos$Longitud,lat=materiales_partidos$Latitud,opacity=1,fill=TRUE,color="rgba(154,206,235)",fillColor = "rgba(154,206,235)",label = "1", labelOptions = labelOptions(noHide = T, direction = 'center', textOnly = T),fillOpacity=0.7,radius=7,clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+    var childCount = cluster.getChildCount(); 
+    var c = ' marker-cluster-';  
+    if (childCount < 100) {  
+      c = 'rgba(154,206,235);'  
+    } else if (childCount < 1000) {  
+      c = 'rgba(154,206,235);'  
+    } else { 
+      c = 'rgba(154,206,235);'
+    }    
+    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+
+  }")))
+
+
+mapa
+```
+
+<p> <br>Según lo observado en el mapa, en las áreas aledañas al estadio no se evidencia una alta densidad de accidentes. Únicamente se observan dos foco de accidentes: uno de heridos con 70 registros y otro para casos con solo daños materiales de 95 registros. Para los accidentes con fatalidades, existe un único registro cercano a dicha zona. Por lo anterior, no se puede asegurar una relacion estrecha de estas fechas con la accidentalidad de Medellín.
+
+##### 3.5.5 Comparación de accidentalidad entre eventos
+
+Finalmente, además de identificar tendencias en la accidentalidad por tipo de gravedad durante el periodo 2014-2018 para cada evento considerado, se buscó observar el efecto de cada evento en el número de casos con heridos, muertos y solo daños materiales registrados en la base de accidentalidad, sin realizar una discriminación por año. Los resultados obtenidos se muestran a continuación.</p>
+
+<!-- Comparación entre todos los eventos --->
+```{r echo=FALSE}
+data_events<-data.frame(c("Heridos","Muertos","Material"))
+names(data_events)[1]<-"Gravedad"
+data_events$Partidos<-c(sum(conteo_partidos$id[1:5]),sum(conteo_partidos$id[6:8]),sum(conteo_partidos$id[9:13]))
+data_events$Semana_Santa<-c(sum(conteo_ss$id[1:5]),sum(conteo_ss$id[6:10]),sum(conteo_ss$id[11:15]))
+data_events$Feria_Flores<-c(sum(conteo_ferias$id[1:5]),sum(conteo_ferias$id[6:10]),sum(conteo_ferias$id[11:15]))
+data_events$Diciembre<-c(sum(conteo_diciembre$id[1:5]),sum(conteo_diciembre$id[6:10]),sum(conteo_diciembre$id[11:15]))
+```
+
+```{r warning=FALSE, message=FALSE,fig.align='center',out.extra='angle=90', fig.width=8, fig.height=4,echo=FALSE}
+library(plotly)
+plot_ly(x = data_events$Gravedad,y = data_events$Diciembre, type = "bar",name = "Diciembre",marker=list(color="#9D81BA"))%>% add_trace(y = data_events$Feria_Flores, name = "Feria Flores",marker=list(color="#45CEA2"))%>% add_trace(y = data_events$Semana_Santa, name = "Semana Santa",marker=list(color="#FC6C85"))%>% add_trace(y = data_events$Partidos, name = "Partidos",marker=list(color="#FFA343"))%>% 
+  layout(title="Número de accidentes por evento según gravedad\n 2014-2018 \n",yaxis = list(title = "Cantidad"),xaxis=list(title="Gravedad",tickangle=0), barmode = "group")
+                                                                                                 
+                                                                 
+```
+
+<p>En la gráfica se evidencia que la época con mayor aporte al número de casos de accidentalidad registrados en Medellín en el periodo 2014-2018 fue Diciembre, seguido por la Feria de Flores, Semana Santa y por último, los clásicos Nacional-Medellín. Como se mencionó anteriormente, la época de diciembre incluye más días que el resto de eventos, por lo cual la diferencia en la frecuencia de accidentes es coherente. Para las demás épocas se evidencia el mismo comportamiento: el número de accidentes aumenta con relación a la cantidad de días considerados por evento. 
+
+Cabe resaltar que con tan solo una diferencia de 4 días, la Feria de Flores presenta aproximadamente el doble de casos por tipo de gravedad que los registrados en Semana Santa, lo cual podría asociarse no solo a un mayor número de turistas en la ciudad, sino a la diferencia en los tipos de eventos realizados en cada época. En Feria de Flores se organizan conciertos en diferentes zonas de la ciudad, lo cual aumenta el número de usuarios de la vía en estado de embriaguez.</p>
+
+### 4. Visualización de la base de datos de educación vial
+
+A continuación se presenta la base de datos de educación vial que contiene registros de las intervenciones realizadas por la Secretaria de Movilidad en el año 2018 en las diferentes comunas y corregimientos de la ciudad de Medellín.
+
+```{r echo=FALSE}
+#Reading the data base
+accidentalidad <-read.csv("accidentalidad_main_limpia.txt",header= TRUE,sep=",")
+educacion_limpia <-read.csv("educacion_limpia2.csv",header= TRUE,sep=",")
+```
+```{r include=FALSE}
+educacion_limpia <- select(educacion_limpia, -X.1, -X)
+```
+
+```{r include=FALSE}
+names(educacion_limpia)[23:25]<-c("JOVEN2","ADULTO2","P.MAYOR2")
+```
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+library(DT)
+datatable(head(educacion_limpia,28), options = list(searching = FALSE,pageLength = 7, lengthChange = FALSE,scrollX=TRUE,
+  initComplete = JS(
+    "function(settings, json) {",
+    "$(this.api().table().header()).css({'font-size': '62%','background-color': '#1A4876', 'color': '#fff'});",
+    "}")
+,columnDefs = list(list(width="100px",className = 'dt-center',
+  targets = "_all",
+  render = JS(
+    "function(data, type, row, meta) {",
+    "return type === 'display' && data.length > 6 ?",
+    "'<span title=\"' + data + '\">' + data.substr(0, 6) + '...</span>' : data;",
+    "}")
+))), callback = JS('table.page(3).draw(false);'))%>% formatStyle(columns = colnames(.$x$data), fontSize = '12px')
+```
+
+### 5. Análisis de la base de datos de educación vial
+
+Este análisis se realizó con el fin de identificar el efecto de las intervenciones realizadas por la Secretaria de Movilidad en la accidentalidad del año 2018 y en el número de accidentes por tipo de gravedad. Para esto, se tomaron los registros reportados en la base de accidentalidad de los años 2017 y 2018 y se efectuaron algunas comparaciones para ambos años. A continuación se presentan los datos y el análisis de esta información.
+
+<!------------------------------------------------------------->
+```{r echo=FALSE}
+educacion_limpia$X<-seq(1,length(educacion_limpia$MES),by=1)
+#Conteo de intervenciones por comunas en educacion_limpia
+intervenciones<-aggregate(X~NCOMUNA,data=educacion_limpia,FUN=length)
+#Conteo de accidentes por comunas
+accidentes_comuna<-aggregate(X.1~COMUNA,data=accidentalidad,FUN=length)
+#Conteo por año y tipo de gravedad
+acci_2018<-subset(accidentalidad,subset=(PERIODO=="2018"))
+acci_2017<-subset(accidentalidad,subset=(PERIODO=="2017"))
+acci_g2018<-aggregate(X.1~COMUNA,data=acci_2018,FUN=length)
+acci_g2017<-aggregate(X.1~COMUNA,data=acci_2017,FUN=length)
+acci_com_2018<-aggregate(X.1~COMUNA+GRAVEDAD,data=acci_2018,FUN=length)
+acci_com_2017<-aggregate(X.1~COMUNA+GRAVEDAD,data=acci_2017,FUN=length)
+```
+
+```{r echo=FALSE}
+complete<-merge(intervenciones,acci_com_2018,by.x="NCOMUNA",by.y="COMUNA")
+```
+
+#### 5.1 Número de intervenciones por comuna
+
+Con el fin de identificar las comunas con el mayor número de intervenciones realizadas por la Secretaria de Movilidad, se realizó el diagrama de barras presentado a continuación. En este se evidencia que las comunas más intervenidas corresponden a las mismas que presentaron altas tasas de accidentalidad en los análisis previos: Castilla (comuna 5), La Candelaria (comuna 10) y el Poblado (comuna 14).
+
+```{r warning=FALSE, message=FALSE,fig.width=6, fig.height=4,  echo=FALSE}
+
+#Grafica: Intervención por comunas
+library(plotly)
+p1<-plot_ly(x = intervenciones$NCOMUNA[1:16], y = intervenciones$X[1:16], type = "bar",marker = list(color = "rgb(154,206,235)"))%>%
+  layout(title="Intervenciones por comuna",yaxis = list(title="Número de intervenciones"),xaxis = list(title="Comuna",tickangle = 0))
+p1
+```
+
+#### 5.2 Accidentes totales por comuna 2017-2018
+
+Para observar el efecto de las intervenciones realizadas por la Secretaria de Movilidad sobre la accidentalidad de la ciudad de Medellín, se elaboró una comparación entre los accidentes reportados para los años 2017 y 2018.
+
+```{r warning=FALSE, message=FALSE,fig.width=6, fig.height=4, echo=FALSE}
+#Grafica: Accidentalidad por comunas 2017-2018
+p2 <- plot_ly(x = acci_g2017$COMUNA[1:16],y = acci_g2017$X.1[1:16], type = "bar", name = "2017",marker=list(color="rgb(219,215,210)"))%>% add_trace(y = acci_g2018$X.1[1:16], name = "2018",marker=list(color="rgb(149,145,140)"))%>% 
+  layout(title="Número de accidentes por comuna",yaxis = list(title = "Cantidad de Accidentes"),xaxis=list(title="Comuna"), barmode = "group")
+p2
+```
+
+<p>En el gráfico se puede identificar, que las tres comunas con mayor número de intervenciones en el año 2018 (comunas 5, 10 y 14), presentaron una disminución en la accidentalidad de alrededor de 100-300 accidentes, lo cual sugiere que, este proceso pedagógico puede efectivamente disminuir la accidentalidad en Medellín. Esta misma tendencia se observó para el resto de comunas intervenidas, excepto en las comunas 1 y 2, donde se evidenció un leve aumento en los casos reportados.
+
+Por último, cabe resaltar que la comuna 11 a pesar de haber presentado una de las mayores accidentalidades  para el periodo 2014-2018, según los análisis reportados previamente, no fue altamente intervenida por la Secretaria de Movilidad en el 2018, por lo que se sugiere aumentar la participación en dicha comuna en futuras jornadas de educación vial.</p>
+
+#### 5.3 Heridos por comuna 2017-2018
+
+Dado que el objetivo principal de este trabajo es identificar tendencias y patrones en la accidentalidad por tipo de gravedad, en las siguientes gráficas se presenta una comparación de los accidentes por tipo de gravedad y comuna entre los años 2017 y 2018.
+
+```{r warning=FALSE, message=FALSE,fig.width=6, fig.height=4, echo=FALSE}
+#Grafica por tipo de gravedad
+#Heridos
+plot_ly(x = acci_com_2017$COMUNA[1:16],y = acci_com_2017$X.1[1:16], type = "bar", name = "2017",marker=list(color="rgb(255,189,136"))%>% add_trace(y = acci_com_2018$X.1[1:16], name = "2018",marker=list(color="rgb(255,163,67"))%>% layout(title="Accidentes con heridos por comuna",yaxis = list(title = "Cantidad de Heridos"),xaxis=list(title="Comuna",tickangle=0), barmode = "group")
+```
+<br>Los accidentes que involucraron heridos poseen la misma tendencia que la accidentalidad total. En esta gráfica se evidencia una disminución para el año 2018 en todas las comunas, excepto la 1 y 2, lo cual sugiere un efecto positivo de las intervenciones en el número de accidentes con heridos en la ciudad.
+
+#### 5.4 Fatalidades por comuna 2017-2018
+
+```{r warning=FALSE, message=FALSE,fig.width=6, fig.height=4, echo=FALSE}
+# Muertos
+plot_ly(x = acci_com_2017$COMUNA[22:37],y = acci_com_2017$X.1[22:37], type = "bar",name = "2017",marker=list(color="#FFA474"))%>% add_trace(y = acci_com_2018$X.1[22:37], name = "2018",marker=list(color="rgb(255,83,73)"))%>% 
+  layout(title="Accidentes con fatalidades por comuna",yaxis = list(title = "Cantidad de Muertos"),xaxis=list(title="Comuna",tickangle=0), barmode = "group")
+```
+
+<br>Los accidentes que generaron pérdidas humanas aumentaron en todas las comunas excepto en la 2, 4 y 13, lo cual sugiere que las intervenciones, a pesar de disminuir los casos de accidentes con heridos; no fueron efectivas para disminuir los índices de fatalidad por accidentes en la ciudad de Medellín.
+
+#### 5.5 Casos de daño material por comuna 2017-2018
+
+```{r warning=FALSE, message=FALSE,fig.width=6, fig.height=4, echo=FALSE}
+#Materiales
+plot_ly(x = acci_com_2017$COMUNA[42:57],y = acci_com_2017$X.1[42:57], type = "bar",name = "2017",marker=list(color="rgb(154,206,235)"))%>% add_trace(y = acci_com_2018$X.1[42:57], name = "2018",marker=list(color="#6699CC"))%>% 
+  layout(title="Accidentes con solo daños por comuna",yaxis = list(title = "Cantidad"),xaxis=list(title="Comuna",tickangle=0), barmode = "group")
+
+```
+
+<br>Finalmente, los daños materiales tuvieron una disminución poco significativa luego de la intervención, lo cual implica que, los esfuerzos deberían enfocarse, según este informe, en disminuir la letalidad de los choques en estas comunas con otras estrategias o con muchas más para poder mitigar el problema constante de accidentalidad en Medellín.
+
+### 6. Vídeo promocional de la aplicación web
+
+Para ver el video promocional de la aplicación web que contiene información sobre la accidentalidad en Medellín durante el periodo 2014-2018, hacer click <a href="https://www.youtube.com/watch?v=dc1cjB1fOBQ&feature=youtu.be" target="_blank">aquí</a>
+
+### 7. Conclusiones
+
+* A partir de las bases de datos suministradas por la Secretaria de Movilidad, se identificaron las franjas horarias por día de mayor riesgo para los usuarios de la vía según los tipos de gravedad analizados (heridos, muertos y sólo daños materiales).
+
+* Al analizar la accidentalidad por comunas según el tipo de gravedad, se determinó que las comunas con mayor número de casos con heridos, muertos y solo daños materiales son Castilla (comuna 5), La Candelaria (comuna 10), Laureles-Estadio (comuna 11) y el Poblado (comuna 14)
+
+* En diciembre ocurren el mayor número de accidentes por tipo de gravedad con respecto a las demás épocas y eventos considerados: Semana Santa, Feria de Flores y Clásicos Nacional-Medellín.
+
+* Según la información disponible, las intervenciones realizadas por la Secretaria de Movilidad han sido parcialmente efectivas en el intento de disminuir los casos de accidentalidad en la ciudad de Medellín. Si bien, podrían estar asociadas a una disminución en el número de heridos para el año 2018, no se evidenciaron cambios satisfactorios en el número de casos con fatalidades y solo daños materiales.
+
+</div>
+
