@@ -23,5 +23,5 @@ Esta aplicación creada con el paquete de R - Shiny es una interfaz interactiva 
 Las bases de datos de accidentalidad y educación vial fueron tomadas de [Medata1](https://geomedellin-m-medellin.opendata.arcgis.com/search?tags=movilidad) y [Medata2](http://medata.gov.co/dataset/educaci%C3%B3n-vial) respectivamente.
 
 #### Nota: 
-Para visualizar el reporte se debe abrir el archivo Base_de_Datos.rar que contiene todas las bases de datos utilizadas para generar el informe y el archivo Rmarkdown reporte.Rmd 
+Para visualizar el código realizado para la generación del reporte se debe abrir el archivo Base_de_Datos.rar que contiene todas las bases de datos utilizadas y el archivo Rmarkdown reporte.Rmd 
 
