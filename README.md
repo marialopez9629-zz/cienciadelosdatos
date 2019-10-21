@@ -4,12 +4,11 @@ Curso: Ciencia de los Datos
 Profesor: Juan David Ospina Arango
 Universidad Nacional de Colombia – Sede Medellín
 
-
 Desarrollo de la aplicación y análisis:
 
 Luis Eduardo Oliveros Oyola
 María Stella López Carvajal
-Jairo Andrés Rodríguez Rodríguez, 
+Jairo Andrés Rodríguez Rodríguez
 Edward Francisco Méndez Otálvaro
 Daniela Cardona González
 
