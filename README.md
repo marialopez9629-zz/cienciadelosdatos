@@ -15,8 +15,8 @@ Daniela Cardona González<br>
 El trabajo consta de tres partes:
 
 -	Reporte del análisis de la gravedad de accidentes en Medellín entre el 2014 y 2018
--	Aplicación interactiva en R - Shiny <a href="https://leoliveroso-provas.shinyapps.io/app-final/" target="_blank"> (Vínculo)</a>
--	Video Soporte de la aplicación <a href="https://www.youtube.com/watch?v=dc1cjB1fOBQ&feature=youtu.be" target="_blank"> (Vínculo)</a>
+-	Aplicación interactiva en R - Shiny <a href="https://leoliveroso-provas.shinyapps.io/app-final/" target="_blank"> (Ver App)</a>
+-	Video Soporte de la aplicación <a href="https://www.youtube.com/watch?v=dc1cjB1fOBQ&feature=youtu.be" target="_blank"> (Ver vídeo)</a>
 
 Esta aplicación creada con el paquete de R - Shiny es una interfaz interactiva que permite observar la evolución de la accidentalidad en Medellín entre los años 2014-2018 de una base de datos libre de la Secretaría de Movilidad. La interfaz ofrece filtros diseñados para facilitar el análisis del número de casos de accidentes por tipo de gravedad registrados, mediante 4 tipos de análisis gráfico como mapas y diagramas.
 
