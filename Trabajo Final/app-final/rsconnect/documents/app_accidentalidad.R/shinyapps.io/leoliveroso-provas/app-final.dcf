@@ -1,0 +1,12 @@
+name: app-final
+title: app-final
+username:
+account: leoliveroso-provas
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1354831
+bundleId: 2518528
+url: https://leoliveroso-provas.shinyapps.io/app-final/
+when: 1571614873.2774
+asMultiple: FALSE
+asStatic: FALSE
